@@ -1,17 +1,21 @@
-cmake_minimum_required(VERSION 3.20)
-project(mkurl
+﻿cmake_minimum_required(VERSION 3.20)
+project(MkURL
     VERSION 1.0.0
-    DESCRIPTION "Modern C++ application"
+    DESCRIPTION "Cross-platform URL shortcut creator"
     HOMEPAGE_URL "https://github.com/pooriayousefi/mkurl"
     LANGUAGES CXX)
 
-# Set C++ standard
+# Set C++20 standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Enable modern CMake policies
+cmake_policy(SET CMP0077 NEW)
+
 # Include standard modules
 include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 # Set default build type
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -56,6 +60,9 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         $<$<CONFIG:Debug>:/Zi /Od /W4 /permissive->
         $<$<CONFIG:Release>:/O2 /DNDEBUG>
     )
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        target_compile_options(mkurl PRIVATE /MT)
+    endif()
 endif()
 
 # Installation
@@ -64,15 +71,35 @@ install(TARGETS mkurl
     COMPONENT Runtime
 )
 
-install(FILES README.md
+install(FILES README.md LICENSE.txt
     DESTINATION ${CMAKE_INSTALL_DOCDIR}
     COMPONENT Documentation
-    OPTIONAL
 )
 
+# CPack configuration for cross-platform packaging
+set(CPACK_PACKAGE_NAME "MkURL")
+set(CPACK_PACKAGE_VENDOR "Pooria Yousefi")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Cross-platform URL shortcut creator")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+
+if(WIN32)
+    set(CPACK_GENERATOR "NSIS;ZIP")
+elseif(APPLE)
+    set(CPACK_GENERATOR "DragNDrop;TGZ")
+else()
+    set(CPACK_GENERATOR "DEB;RPM;TGZ")
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Pooria Yousefi")
+    set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+endif()
+
+include(CPack)
+
 # Configuration summary
-message(STATUS "mkurl Configuration Summary:")
+message(STATUS "MkURL Configuration Summary:")
 message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C++ standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "  Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "  Platform: ${CMAKE_SYSTEM_NAME}")
+message(STATUS "  Install prefix: ${CMAKE_INSTALL_PREFIX}")
