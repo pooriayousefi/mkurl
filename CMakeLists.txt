@@ -1,21 +1,78 @@
-﻿# CMakeList.txt : CMake project for mkurl, include source and define
-# project specific logic here.
-#
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required(VERSION 3.20)
+project(mkurl
+    VERSION 1.0.0
+    DESCRIPTION "Modern C++ application"
+    HOMEPAGE_URL "https://github.com/pooriayousefi/mkurl"
+    LANGUAGES CXX)
 
-# Enable Hot Reload for MSVC compilers if supported.
-if (POLICY CMP0141)
-  cmake_policy(SET CMP0141 NEW)
-  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Include standard modules
+include(GNUInstallDirs)
+
+# Set default build type
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "Setting build type to 'Release' as none was specified.")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
-project ("mkurl")
+# Create the executable
+add_executable(mkurl mkurl.cpp)
 
-# Add source to this project's executable.
-add_executable (mkurl "mkurl.cpp" )
+# Set target properties
+set_target_properties(mkurl PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    DEBUG_POSTFIX "_debug"
+)
 
-if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET mkurl PROPERTY CXX_STANDARD 20)
+# Platform-specific settings
+if(WIN32)
+    target_compile_definitions(mkurl PRIVATE _WIN32_WINNT=0x0601)
+elseif(APPLE)
+    target_compile_definitions(mkurl PRIVATE __APPLE__)
+else()
+    target_compile_definitions(mkurl PRIVATE __linux__)
 endif()
 
-# TODO: Add tests and install targets if needed.
+# Compiler-specific options for cross-platform support
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(mkurl PRIVATE
+        $<$<CONFIG:Debug>:-g -O0 -Wall -Wextra -Wpedantic -Wshadow>
+        $<$<CONFIG:Release>:-O3 -DNDEBUG>
+    )
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_options(mkurl PRIVATE -fsanitize=address,undefined)
+        target_link_options(mkurl PRIVATE -fsanitize=address,undefined)
+    endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(mkurl PRIVATE
+        $<$<CONFIG:Debug>:/Zi /Od /W4 /permissive->
+        $<$<CONFIG:Release>:/O2 /DNDEBUG>
+    )
+endif()
+
+# Installation
+install(TARGETS mkurl
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT Runtime
+)
+
+install(FILES README.md
+    DESTINATION ${CMAKE_INSTALL_DOCDIR}
+    COMPONENT Documentation
+    OPTIONAL
+)
+
+# Configuration summary
+message(STATUS "mkurl Configuration Summary:")
+message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "  C++ standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "  Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "  Platform: ${CMAKE_SYSTEM_NAME}")
